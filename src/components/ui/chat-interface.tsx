@@ -3,18 +3,27 @@
 import { useState, useRef, useEffect } from "react";
 import { AIInputWithLoading } from "@/components/ui/ai-input-with-loading";
 import { cn } from "@/lib/utils";
-import { Bot, User, Sparkles } from "lucide-react";
+import { Bot, Plus, User } from "lucide-react";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestamp: string;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  updatedAt: string;
 }
 
 interface ChatInterfaceProps {
   className?: string;
 }
+
+const STORAGE_KEY = "ai-chat-sessions-v1";
 
 // Simulated AI responses
 const aiResponses = [
@@ -34,9 +43,46 @@ function generateId(): string {
 }
 
 export function ChatInterface({ className }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const activeSession = sessions.find((session) => session.id === activeSessionId) ?? null;
+  const messages = activeSession?.messages ?? [];
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as ChatSession[];
+      if (!Array.isArray(parsed)) return;
+
+      const cleaned = parsed
+        .filter((session) => Array.isArray(session.messages))
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+
+      setSessions(cleaned);
+      if (cleaned.length > 0) {
+        setActiveSessionId(cleaned[0].id);
+      }
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (sessions.length === 0) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  }, [sessions]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -46,19 +92,61 @@ export function ChatInterface({ className }: ChatInterfaceProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages.length, isTyping]);
+
+  const updateSession = (sessionId: string, updater: (session: ChatSession) => ChatSession) => {
+    setSessions((prev) => {
+      const next = prev.map((session) =>
+        session.id === sessionId ? updater(session) : session
+      );
+
+      next.sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+
+      return next;
+    });
+  };
+
+  const createSession = (firstMessage: Message): string => {
+    const now = new Date().toISOString();
+    const newSession: ChatSession = {
+      id: generateId(),
+      title: firstMessage.content.slice(0, 36),
+      messages: [firstMessage],
+      updatedAt: now,
+    };
+
+    setSessions((prev) => [newSession, ...prev]);
+    setActiveSessionId(newSession.id);
+    return newSession.id;
+  };
+
+  const startNewChat = () => {
+    setActiveSessionId(null);
+  };
 
   const handleSubmit = async (value: string) => {
     if (!value.trim()) return;
 
-    // Add user message
+    const content = value.trim();
     const userMessage: Message = {
       id: generateId(),
       role: "user",
-      content: value.trim(),
-      timestamp: new Date(),
+      content,
+      timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+
+    const sessionId = activeSessionId ?? createSession(userMessage);
+
+    if (activeSessionId) {
+      updateSession(activeSessionId, (session) => ({
+        ...session,
+        title: session.title || content.slice(0, 36),
+        messages: [...session.messages, userMessage],
+        updatedAt: new Date().toISOString(),
+      }));
+    }
 
     // Simulate AI thinking
     setIsTyping(true);
@@ -68,36 +156,102 @@ export function ChatInterface({ className }: ChatInterfaceProps) {
     const aiMessage: Message = {
       id: generateId(),
       role: "assistant",
-      content: `${getRandomResponse()} You said: "${value.trim()}"`,
-      timestamp: new Date(),
+      content: `${getRandomResponse()} You said: "${content}"`,
+      timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, aiMessage]);
+
+    updateSession(sessionId, (session) => ({
+      ...session,
+      messages: [...session.messages, aiMessage],
+      updatedAt: new Date().toISOString(),
+    }));
+
+    setActiveSessionId(sessionId);
     setIsTyping(false);
   };
 
   return (
-    <div className={cn("flex flex-col h-full w-full max-w-2xl mx-auto", className)}>
-      {/* Chat Messages Area */}
-      <div className="flex-1 overflow-hidden">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center px-4">
-            <div className="glass-container p-8 text-center max-w-md">
-              <div className="mb-4 mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent-color)] to-[var(--accent-hover)] flex items-center justify-center">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
-                Welcome to AI Chat
-              </h2>
-              <p className="text-[var(--text-secondary)] text-sm">
-                Start a conversation by typing your message below. I'm here to help!
-              </p>
-            </div>
+    <div className={cn("flex h-full w-full max-w-7xl gap-4 px-4", className)}>
+      <aside className="hidden w-72 flex-shrink-0 rounded-2xl border border-[var(--border-color)] bg-[var(--input-bg)] p-3 backdrop-blur-xl md:flex md:flex-col">
+        <button
+          type="button"
+          onClick={startNewChat}
+          className="mb-2 flex items-center gap-2 rounded-xl border border-[var(--border-color)] px-3 py-2 text-sm text-[var(--text-primary)] transition hover:bg-white/10"
+        >
+          <Plus className="h-4 w-4" />
+          <span>New chat</span>
+        </button>
+
+        {sessions.length > 0 && (
+          <div className="mt-1 space-y-1 overflow-y-auto pr-1">
+            {sessions.map((session) => {
+              const isActive = session.id === activeSessionId;
+
+              return (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => setActiveSessionId(session.id)}
+                  className={cn(
+                    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "text-[var(--text-secondary)] hover:bg-white/10 hover:text-white"
+                  )}
+                >
+                  <p className="truncate font-medium">{session.title || "Untitled"}</p>
+                  <p className="truncate text-xs text-[var(--text-muted)]">
+                    {new Date(session.updatedAt).toLocaleDateString()} {" "}
+                    {new Date(session.updatedAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </button>
+              );
+            })}
           </div>
-        ) : (
+        )}
+      </aside>
+
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[var(--border-color)] bg-[var(--input-bg)]/85 backdrop-blur-xl">
+        <div className="border-b border-[var(--border-color)] px-4 py-3 md:hidden">
+          <button
+            type="button"
+            onClick={startNewChat}
+            className="rounded-lg border border-[var(--border-color)] px-3 py-1.5 text-sm text-[var(--text-primary)]"
+          >
+            New chat
+          </button>
+        </div>
+
+        <div className="border-b border-[var(--border-color)] px-4 py-2 md:hidden">
+          {sessions.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {sessions.map((session) => (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => setActiveSessionId(session.id)}
+                  className={cn(
+                    "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs",
+                    session.id === activeSessionId
+                      ? "bg-white/20 text-white"
+                      : "bg-white/10 text-[var(--text-secondary)]"
+                  )}
+                >
+                  {session.title || "Untitled"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-hidden">
           <div
             ref={messagesContainerRef}
             className="h-full overflow-y-auto px-4 py-6 scroll-smooth"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.3) transparent' }}
+            style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.3) transparent" }}
           >
             <div className="space-y-4 pb-4">
               {messages.map((message) => (
@@ -106,22 +260,21 @@ export function ChatInterface({ className }: ChatInterfaceProps) {
               {isTyping && <TypingIndicator />}
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Input Area */}
-      <div className="flex-shrink-0 px-4 pb-4">
-        <AIInputWithLoading
-          className="w-full"
-          minHeight={56}
-          maxHeight={200}
-          loadingDuration={1800}
-          thinkingDuration={800}
-          onSubmit={handleSubmit}
-          placeholder="Type your message..."
-          id="chat-input"
-        />
-      </div>
+        <div className="flex-shrink-0 px-4 pb-4">
+          <AIInputWithLoading
+            className="w-full"
+            minHeight={56}
+            maxHeight={200}
+            loadingDuration={1800}
+            thinkingDuration={800}
+            onSubmit={handleSubmit}
+            placeholder="Type your message..."
+            id="chat-input"
+          />
+        </div>
+      </section>
     </div>
   );
 }
@@ -163,7 +316,7 @@ function ChatMessage({ message }: { message: Message }) {
           {message.content}
         </p>
         <span className="block mt-1 text-[10px] text-[var(--text-muted)]">
-          {message.timestamp.toLocaleTimeString([], {
+          {new Date(message.timestamp).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           })}

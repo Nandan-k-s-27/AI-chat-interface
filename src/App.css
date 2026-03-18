@@ -277,24 +277,6 @@
 }
 
 /* ============================================
-   Footer
-   ============================================ */
-
-.app-footer {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-}
-
-.app-footer p {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-/* ============================================
    Responsive Design
    ============================================ */
 
@@ -323,10 +305,6 @@
   .send-button-glass {
     width: 52px;
     height: 52px;
-  }
-
-  .app-footer {
-    display: none;
   }
 
   .wave-ripple {

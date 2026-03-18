@@ -108,7 +108,7 @@ export function AIInputWithLoading({
               "transition-all duration-200",
               submitted
                 ? "bg-transparent"
-                : "bg-[var(--accent-color)] hover:bg-[var(--accent-hover)]"
+                : "bg-white hover:bg-white/90"
             )}
             type="button"
             disabled={submitted}
@@ -122,16 +122,13 @@ export function AIInputWithLoading({
             ) : (
               <CornerRightUp
                 className={cn(
-                  "h-4 w-4 text-white transition-opacity",
+                  "h-4 w-4 text-slate-900 transition-opacity",
                   inputValue ? "opacity-100" : "opacity-60"
                 )}
               />
             )}
           </button>
         </div>
-        <p className="mx-auto h-4 pl-2 text-xs text-[var(--text-secondary)]">
-          {submitted ? "AI is thinking..." : "Ready to submit!"}
-        </p>
       </div>
     </div>
   );

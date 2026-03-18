@@ -93,12 +93,12 @@ function AppContent() {
       {/* Background */}
       <div className="background-wrapper">
         <img
-          src="https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1920&q=80"
+          src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80"
           alt=""
           className={`background-image ${theme === 'light' ? 'active' : ''}`}
         />
         <img
-          src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1920&q=80"
+          src="https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1920&q=80"
           alt=""
           className={`background-image ${theme === 'dark' ? 'active' : ''}`}
         />
@@ -146,10 +146,6 @@ function AppContent() {
             <LandingInput onStartChat={() => setChatMode(true)} />
           </main>
 
-          {/* Footer hint */}
-          <footer className="app-footer">
-            <p>Click anywhere for wave effect</p>
-          </footer>
         </>
       )}
     </div>
