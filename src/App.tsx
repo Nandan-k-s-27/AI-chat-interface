@@ -3,6 +3,7 @@ import { ThemeProvider, useTheme } from '@/hooks/useTheme';
 import { ChatInterface } from '@/components/ui/chat-interface';
 import { AIInputWithLoading } from '@/components/ui/ai-input-with-loading';
 import { Moon, Sun, MessageCircle, ArrowLeft } from 'lucide-react';
+import darkBg from './assets/dark-bg.jpg';
 import './App.css';
 
 interface Ripple {
@@ -98,7 +99,7 @@ function AppContent() {
           className={`background-image ${theme === 'light' ? 'active' : ''}`}
         />
         <img
-          src="https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1920&q=80"
+          src={darkBg}
           alt=""
           className={`background-image ${theme === 'dark' ? 'active' : ''}`}
         />
