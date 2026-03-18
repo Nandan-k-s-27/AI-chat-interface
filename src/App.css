@@ -1,0 +1,490 @@
+/* ============================================
+   Grassland Chat - Minimal Glass Input
+   ============================================ */
+
+/* CSS Variables for theming */
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(255, 255, 255, 0.3);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --accent-color: #818cf8;
+  --accent-hover: #6366f1;
+  --input-bg: rgba(0, 0, 0, 0.35);
+  --overlay-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.55);
+  --border-color: rgba(255, 255, 255, 0.2);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --accent-color: #a5b4fc;
+  --accent-hover: #818cf8;
+  --input-bg: rgba(0, 0, 0, 0.45);
+  --overlay-bg: rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   App Container & Background
+   ============================================ */
+
+.app-container {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.background-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.background-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+
+.background-image.active {
+  opacity: 1;
+}
+
+.background-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay-bg);
+  transition: background 0.5s ease;
+}
+
+/* ============================================
+   Wave Cursor Effect
+   ============================================ */
+
+.wave-cursor-container {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.wave-ripple {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
+  pointer-events: none;
+  animation: waveExpand 1s ease-out forwards;
+}
+
+@keyframes waveExpand {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+    box-shadow: 
+      0 0 0 0 rgba(255, 255, 255, 0.4),
+      0 0 0 0 rgba(255, 255, 255, 0.3),
+      0 0 0 0 rgba(255, 255, 255, 0.2);
+  }
+  30% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(8);
+    opacity: 0;
+    box-shadow: 
+      0 0 0 20px rgba(255, 255, 255, 0),
+      0 0 0 40px rgba(255, 255, 255, 0),
+      0 0 0 60px rgba(255, 255, 255, 0);
+  }
+}
+
+/* Ring effect for grass wave */
+.wave-ripple::before,
+.wave-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  animation: ringExpand 1s ease-out forwards;
+}
+
+.wave-ripple::before {
+  animation-delay: 0.1s;
+}
+
+.wave-ripple::after {
+  animation-delay: 0.2s;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes ringExpand {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(6);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   Theme Toggle - Top Right
+   ============================================ */
+
+.theme-toggle-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 20;
+}
+
+.theme-toggle {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: scale(1.08);
+  box-shadow: 0 6px 25px rgba(99, 102, 241, 0.4);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   Center Content - Input Only
+   ============================================ */
+
+.center-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  width: 100%;
+  max-width: 600px;
+  padding: 0 1.5rem;
+  pointer-events: none;
+}
+
+.center-content > * {
+  pointer-events: auto;
+}
+
+/* ============================================
+   Glass Input with Send Button
+   ============================================ */
+
+.chat-input-wrapper-centered {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.chat-input-glass {
+  flex: 1;
+  height: 56px;
+  padding: 0 1.5rem !important;
+  background: var(--input-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  color: var(--text-primary) !important;
+  font-size: 1rem !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px var(--shadow-color),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.chat-input-glass::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.chat-input-glass:focus {
+  outline: none !important;
+  border-color: var(--accent-color) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 
+    0 8px 32px var(--shadow-color),
+    0 0 0 3px rgba(129, 140, 248, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.send-button-glass {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  border: none;
+  border-radius: 16px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: 
+    0 6px 20px rgba(99, 102, 241, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.send-button-glass:hover:not(:disabled) {
+  transform: scale(1.06) translateY(-2px);
+  box-shadow: 
+    0 10px 30px rgba(99, 102, 241, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.send-button-glass:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.send-button-glass:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+
+.app-footer {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.app-footer p {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 640px) {
+  .theme-toggle-container {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .center-content {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+
+  .chat-input-glass {
+    height: 52px;
+    padding: 0 1.25rem !important;
+    font-size: 0.9375rem !important;
+  }
+
+  .send-button-glass {
+    width: 52px;
+    height: 52px;
+  }
+
+  .app-footer {
+    display: none;
+  }
+
+  .wave-ripple {
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    margin-top: -8px;
+  }
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.theme-toggle:focus-visible,
+.send-button-glass:focus-visible,
+.chat-input-glass:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Chat Interface - Glass Messages
+   ============================================ */
+
+.glass-container {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px var(--shadow-color);
+}
+
+.glass-message-user {
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+}
+
+.glass-message-ai {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 16px var(--shadow-color);
+}
+
+.glass-avatar {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Chat Mode Container */
+.chat-mode-container {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  padding-top: 80px;
+  padding-bottom: 20px;
+}
+
+/* Mode Toggle Button */
+.mode-toggle-container {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 20;
+}
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.mode-toggle:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: scale(1.02);
+  box-shadow: 0 6px 25px rgba(99, 102, 241, 0.4);
+}
+
+.mode-toggle:active {
+  transform: scale(0.98);
+}
+
+/* Back Button in Chat Mode */
+.back-button {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-2px);
+}
+
+/* Responsive adjustments for chat mode */
+@media (max-width: 640px) {
+  .mode-toggle-container {
+    top: 1rem;
+    left: 1rem;
+  }
+
+  .mode-toggle {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .back-button {
+    top: 1rem;
+    left: 1rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .chat-mode-container {
+    padding-top: 70px;
+    padding-bottom: 10px;
+  }
+}
