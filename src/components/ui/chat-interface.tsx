@@ -42,38 +42,51 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
+function getInitialChatState(): {
+  sessions: ChatSession[];
+  activeSessionId: string | null;
+} {
+  if (typeof window === "undefined") {
+    return { sessions: [], activeSessionId: null };
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return { sessions: [], activeSessionId: null };
+    }
+
+    const parsed = JSON.parse(raw) as ChatSession[];
+    if (!Array.isArray(parsed)) {
+      return { sessions: [], activeSessionId: null };
+    }
+
+    const sessions = parsed
+      .filter((session) => Array.isArray(session.messages))
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+
+    return {
+      sessions,
+      activeSessionId: sessions.length > 0 ? sessions[0].id : null,
+    };
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return { sessions: [], activeSessionId: null };
+  }
+}
+
 export function ChatInterface({ className }: ChatInterfaceProps) {
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [{ sessions: initialSessions, activeSessionId: initialActiveSessionId }] = useState(getInitialChatState);
+  const [sessions, setSessions] = useState<ChatSession[]>(initialSessions);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(initialActiveSessionId);
   const [isTyping, setIsTyping] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const activeSession = sessions.find((session) => session.id === activeSessionId) ?? null;
   const messages = activeSession?.messages ?? [];
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-
-      const parsed = JSON.parse(raw) as ChatSession[];
-      if (!Array.isArray(parsed)) return;
-
-      const cleaned = parsed
-        .filter((session) => Array.isArray(session.messages))
-        .sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
-
-      setSessions(cleaned);
-      if (cleaned.length > 0) {
-        setActiveSessionId(cleaned[0].id);
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, []);
 
   useEffect(() => {
     if (sessions.length === 0) {
